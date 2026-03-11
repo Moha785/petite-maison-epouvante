@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useKeycloak } from '@/hooks/useKeycloak';
 
 interface Produit {
   id: number;
@@ -13,15 +14,16 @@ interface Produit {
 }
 
 export default function Home() {
+  const { isAuthenticated, username, roles, login, logout, register, loading } = useKeycloak();
   const [produits, setProduits] = useState<Produit[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [produitsLoading, setProduitsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('http://localhost:8080/api/produits')
       .then(res => res.json())
-      .then(data => { setProduits(data); setLoading(false); })
-      .catch(() => { setError('Erreur de connexion au serveur'); setLoading(false); });
+      .then(data => { setProduits(data); setProduitsLoading(false); })
+      .catch(() => { setError('Erreur de connexion au serveur'); setProduitsLoading(false); });
   }, []);
 
   return (
@@ -32,16 +34,45 @@ export default function Home() {
             <h1 className="text-3xl font-bold text-red-500">La Petite Maison de Epouvante</h1>
             <p className="text-gray-400 text-sm mt-1">Fanzine Horreur et Fantastique</p>
           </div>
-          <a href="http://localhost:8180" target="_blank" className="bg-red-700 hover:bg-red-600 px-4 py-2 rounded text-sm font-medium transition">
-            Connexion Keycloak
-          </a>
+          <div className="flex items-center gap-3">
+            {loading ? (
+              <span className="text-gray-500 text-sm">Chargement...</span>
+            ) : isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <span className="text-gray-300 text-sm">
+                  👤 {username}
+                  {roles.includes('admin') && (
+                    <span className="ml-2 bg-red-800 text-red-200 text-xs px-2 py-0.5 rounded">Admin</span>
+                  )}
+                </span>
+                <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm font-medium transition">
+                  Déconnexion
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button onClick={register} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm font-medium transition">
+                  Créer un compte
+                </button>
+                <button onClick={login} className="bg-red-700 hover:bg-red-600 px-4 py-2 rounded text-sm font-medium transition">
+                  Connexion
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       <section className="max-w-6xl mx-auto px-8 py-12">
         <h2 className="text-2xl font-bold mb-8 text-red-400">Catalogue Produits</h2>
 
-        {loading && <div className="text-center text-gray-400 py-20">Chargement...</div>}
+        {isAuthenticated && (
+          <div className="bg-green-900 border border-green-600 text-green-200 px-6 py-3 rounded mb-6">
+            Bienvenue <strong>{username}</strong> !
+          </div>
+        )}
+
+        {produitsLoading && <div className="text-center text-gray-400 py-20">Chargement...</div>}
 
         {error && (
           <div className="bg-red-900 border border-red-500 text-red-200 px-6 py-4 rounded">
@@ -49,7 +80,7 @@ export default function Home() {
           </div>
         )}
 
-        {!loading && !error && produits.length === 0 && (
+        {!produitsLoading && !error && produits.length === 0 && (
           <div className="text-center text-gray-500 py-20">
             <p className="text-5xl mb-4">👻</p>
             <p>Aucun produit disponible.</p>
@@ -73,10 +104,11 @@ export default function Home() {
                   <span className="text-xs text-gray-500">Stock : {produit.stock}</span>
                 </div>
                 <button
+                  onClick={() => !isAuthenticated && login()}
                   disabled={!produit.disponible}
                   className="mt-4 w-full bg-red-700 hover:bg-red-600 disabled:bg-gray-700 disabled:text-gray-500 py-2 rounded font-medium transition"
                 >
-                  {produit.disponible ? 'Ajouter au panier' : 'Indisponible'}
+                  {!produit.disponible ? 'Indisponible' : isAuthenticated ? 'Ajouter au panier' : 'Connectez-vous pour acheter'}
                 </button>
               </div>
             </div>
