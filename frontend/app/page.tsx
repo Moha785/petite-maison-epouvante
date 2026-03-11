@@ -10,7 +10,6 @@ interface Produit {
   stock: number;
   categorie: string;
   disponible: boolean;
-  imageUrl?: string;
 }
 
 export default function Home() {
@@ -34,7 +33,7 @@ export default function Home() {
             <p className="text-gray-400 text-sm mt-1">Fanzine Horreur et Fantastique</p>
           </div>
           <a href="http://localhost:8180" target="_blank" className="bg-red-700 hover:bg-red-600 px-4 py-2 rounded text-sm font-medium transition">
-            Connexion
+            Connexion Keycloak
           </a>
         </div>
       </header>
@@ -42,9 +41,7 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-8 py-12">
         <h2 className="text-2xl font-bold mb-8 text-red-400">Catalogue Produits</h2>
 
-        {loading && (
-          <div className="text-center text-gray-400 py-20">Chargement...</div>
-        )}
+        {loading && <div className="text-center text-gray-400 py-20">Chargement...</div>}
 
         {error && (
           <div className="bg-red-900 border border-red-500 text-red-200 px-6 py-4 rounded">
@@ -55,7 +52,7 @@ export default function Home() {
         {!loading && !error && produits.length === 0 && (
           <div className="text-center text-gray-500 py-20">
             <p className="text-5xl mb-4">👻</p>
-            <p>Aucun produit disponible pour le moment.</p>
+            <p>Aucun produit disponible.</p>
           </div>
         )}
 
