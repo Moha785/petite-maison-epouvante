@@ -61,14 +61,14 @@ jobs:
           npm run build
 
   docker:
-    name: Build Docker Images
+    name: Build Docker Image Backend
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build backend image
+      - name: Build image Docker backend
         run: |
           cd backend
-          docker build -t pme-backend:${{ github.sha }} . || echo "Dockerfile manquant, skip"
-
+          docker build -t pme-backend:${{ github.sha }} .
+          echo "Image buildee avec succes"
