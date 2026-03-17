@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useKeycloak } from '@/hooks/useKeycloak';
 
 interface Produit {
@@ -20,6 +21,7 @@ interface ArticlePanier {
 
 export default function Home() {
   const { isAuthenticated, username, roles, login, logout, register, loading } = useKeycloak();
+  const router = useRouter();
   const [produits, setProduits] = useState<Produit[]>([]);
   const [produitsLoading, setProduitsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,8 @@ export default function Home() {
       .catch(() => { setError('Erreur de connexion au serveur'); setProduitsLoading(false); });
   }, []);
 
-  const ajouterAuPanier = (produit: Produit) => {
+  const ajouterAuPanier = (e: React.MouseEvent, produit: Produit) => {
+    e.stopPropagation();
     if (!isAuthenticated) { login(); return; }
     setPanier(prev => {
       const existant = prev.find(a => a.produit.id === produit.id);
@@ -138,7 +141,11 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {produits.map(produit => (
-            <div key={produit.id} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden hover:border-red-700 transition">
+            <div
+              key={produit.id}
+              onClick={() => router.push(`/produits/${produit.id}`)}
+              className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden hover:border-red-700 transition cursor-pointer"
+            >
               <div className="bg-gray-800 h-48 flex items-center justify-center text-6xl">
                 {produit.categorie === 'VETEMENT' ? '👕' :
                  produit.categorie === 'LIVRE' ? '📚' :
@@ -153,7 +160,7 @@ export default function Home() {
                   <span className="text-xs text-gray-500">Stock : {produit.stock}</span>
                 </div>
                 <button
-                  onClick={() => ajouterAuPanier(produit)}
+                  onClick={(e) => ajouterAuPanier(e, produit)}
                   disabled={!produit.disponible}
                   className="mt-4 w-full bg-red-700 hover:bg-red-600 disabled:bg-gray-700 disabled:text-gray-500 py-2 rounded font-medium transition"
                 >

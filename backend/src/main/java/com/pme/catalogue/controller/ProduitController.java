@@ -6,19 +6,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/produits")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 public class ProduitController {
 
     private final ProduitService produitService;
-
-    // ── PUBLIC : tout le monde peut voir le catalogue ──
 
     @GetMapping
     public ResponseEntity<List<ProduitDTO>> getAll() {
@@ -27,7 +24,9 @@ public class ProduitController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ProduitDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(produitService.findById(id));
+        return produitService.getProduitById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/recherche")
@@ -38,17 +37,13 @@ public class ProduitController {
         return ResponseEntity.ok(produitService.rechercher(nom, categorie, disponible));
     }
 
-    // ── ADMIN ONLY : création, modification, suppression ──
-
     @PostMapping
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<ProduitDTO> create(@Valid @RequestBody ProduitDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(produitService.create(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<ProduitDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody ProduitDTO dto) {
@@ -56,7 +51,6 @@ public class ProduitController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         produitService.delete(id);
         return ResponseEntity.noContent().build();

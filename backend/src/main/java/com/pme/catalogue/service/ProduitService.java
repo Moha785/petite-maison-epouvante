@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -16,7 +17,6 @@ public class ProduitService {
 
     private final ProduitRepository produitRepository;
 
-    // ── LISTER TOUS LES PRODUITS ──
     public List<ProduitDTO> findAll() {
         return produitRepository.findAll()
                 .stream()
@@ -24,14 +24,16 @@ public class ProduitService {
                 .collect(Collectors.toList());
     }
 
-    // ── TROUVER PAR ID ──
     public ProduitDTO findById(Long id) {
         Produit produit = produitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Produit non trouvé : " + id));
         return toDTO(produit);
     }
 
-    // ── RECHERCHER ──
+    public Optional<ProduitDTO> getProduitById(Long id) {
+        return produitRepository.findById(id).map(this::toDTO);
+    }
+
     public List<ProduitDTO> rechercher(String nom, String categorie, Boolean disponible) {
         return produitRepository.rechercher(nom, categorie, disponible)
                 .stream()
@@ -39,13 +41,11 @@ public class ProduitService {
                 .collect(Collectors.toList());
     }
 
-    // ── CRÉER (ADMIN) ──
     public ProduitDTO create(ProduitDTO dto) {
         Produit produit = toEntity(dto);
         return toDTO(produitRepository.save(produit));
     }
 
-    // ── MODIFIER (ADMIN) ──
     public ProduitDTO update(Long id, ProduitDTO dto) {
         Produit produit = produitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Produit non trouvé : " + id));
@@ -59,7 +59,6 @@ public class ProduitService {
         return toDTO(produitRepository.save(produit));
     }
 
-    // ── SUPPRIMER (ADMIN) ──
     public void delete(Long id) {
         if (!produitRepository.existsById(id)) {
             throw new RuntimeException("Produit non trouvé : " + id);
@@ -67,7 +66,6 @@ public class ProduitService {
         produitRepository.deleteById(id);
     }
 
-    // ── MAPPERS ──
     private ProduitDTO toDTO(Produit p) {
         return ProduitDTO.builder()
                 .id(p.getId())
