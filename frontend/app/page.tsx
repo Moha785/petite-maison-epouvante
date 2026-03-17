@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useKeycloak } from '@/hooks/useKeycloak';
 
@@ -19,14 +19,37 @@ interface ArticlePanier {
   quantite: number;
 }
 
+const getPanierFromStorage = (): ArticlePanier[] => {
+  try {
+    const saved = localStorage.getItem('panier');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
 export default function Home() {
-  const { isAuthenticated, username, roles, login, logout, register, loading } = useKeycloak();
+  const { isAuthenticated, username, login, logout, register, loading } = useKeycloak();
   const router = useRouter();
   const [produits, setProduits] = useState<Produit[]>([]);
   const [produitsLoading, setProduitsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [panier, setPanier] = useState<ArticlePanier[]>([]);
   const [panierOuvert, setPanierOuvert] = useState(false);
+  const initialise = useRef(false);
+
+  useEffect(() => {
+    if (!initialise.current) {
+      setPanier(getPanierFromStorage());
+      initialise.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialise.current) {
+      localStorage.setItem('panier', JSON.stringify(panier));
+    }
+  }, [panier]);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/produits`)

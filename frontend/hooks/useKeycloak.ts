@@ -14,6 +14,7 @@ interface KeycloakState {
 }
 
 let keycloakInstance: any = null;
+let keycloakInitialized = false;
 
 export function useKeycloak(): KeycloakState {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -36,7 +37,19 @@ export function useKeycloak(): KeycloakState {
         });
       }
 
+      if (keycloakInitialized) {
+        setIsAuthenticated(keycloakInstance.authenticated || false);
+        if (keycloakInstance.authenticated) {
+          setUsername(keycloakInstance.tokenParsed?.preferred_username || null);
+          setToken(keycloakInstance.token || null);
+          setRoles(keycloakInstance.realmAccess?.roles || []);
+        }
+        setLoading(false);
+        return;
+      }
+
       try {
+        keycloakInitialized = true;
         const authenticated = await keycloakInstance.init({
           onLoad: 'check-sso',
           silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
@@ -51,6 +64,7 @@ export function useKeycloak(): KeycloakState {
         }
       } catch (e) {
         console.error('Keycloak init failed', e);
+        keycloakInitialized = false;
       } finally {
         setLoading(false);
       }

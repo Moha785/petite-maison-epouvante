@@ -14,6 +14,27 @@ interface Produit {
   disponible: boolean;
 }
 
+interface ArticlePanier {
+  produit: Produit;
+  quantite: number;
+}
+
+const ajouterAuPanierStorage = (produit: Produit) => {
+  try {
+    const saved = localStorage.getItem('panier');
+    const panier: ArticlePanier[] = saved ? JSON.parse(saved) : [];
+    const existant = panier.find(a => a.produit.id === produit.id);
+    if (existant) {
+      const updated = panier.map(a => a.produit.id === produit.id ? { ...a, quantite: a.quantite + 1 } : a);
+      localStorage.setItem('panier', JSON.stringify(updated));
+    } else {
+      localStorage.setItem('panier', JSON.stringify([...panier, { produit, quantite: 1 }]));
+    }
+  } catch (e) {
+    console.error('Erreur panier', e);
+  }
+};
+
 export default function DetailProduit() {
   const { id } = useParams();
   const router = useRouter();
@@ -29,8 +50,10 @@ export default function DetailProduit() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  const ajouterAuPanier = () => {
+  const handleAjouterAuPanier = () => {
     if (!isAuthenticated) { login(); return; }
+    if (!produit) return;
+    ajouterAuPanierStorage(produit);
     setAjoute(true);
     setTimeout(() => setAjoute(false), 2000);
   };
@@ -88,7 +111,7 @@ export default function DetailProduit() {
               </div>
             </div>
             <button
-              onClick={ajouterAuPanier}
+              onClick={handleAjouterAuPanier}
               disabled={!produit.disponible}
               className={`w-full py-3 rounded font-medium transition ${
                 ajoute ? 'bg-green-700' :
