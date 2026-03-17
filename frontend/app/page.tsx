@@ -20,7 +20,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/produits')
+fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/produits`)
       .then(res => res.json())
       .then(data => { setProduits(data); setProduitsLoading(false); })
       .catch(() => { setError('Erreur de connexion au serveur'); setProduitsLoading(false); });
