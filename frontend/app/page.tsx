@@ -28,6 +28,8 @@ const getPanierFromStorage = (): ArticlePanier[] => {
   }
 };
 
+const CATEGORIES = ['TOUS', 'VETEMENT', 'LIVRE', 'ACCESSOIRE'];
+
 export default function Home() {
   const { isAuthenticated, username, login, logout, register, loading } = useKeycloak();
   const router = useRouter();
@@ -36,6 +38,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [panier, setPanier] = useState<ArticlePanier[]>([]);
   const [panierOuvert, setPanierOuvert] = useState(false);
+  const [recherche, setRecherche] = useState('');
+  const [categorieActive, setCategorieActive] = useState('TOUS');
   const initialise = useRef(false);
 
   useEffect(() => {
@@ -57,6 +61,13 @@ export default function Home() {
       .then(data => { setProduits(data); setProduitsLoading(false); })
       .catch(() => { setError('Erreur de connexion au serveur'); setProduitsLoading(false); });
   }, []);
+
+  const produitsFiltres = produits.filter(p => {
+    const matchRecherche = p.nom.toLowerCase().includes(recherche.toLowerCase()) ||
+                           p.description.toLowerCase().includes(recherche.toLowerCase());
+    const matchCategorie = categorieActive === 'TOUS' || p.categorie === categorieActive;
+    return matchRecherche && matchCategorie;
+  });
 
   const ajouterAuPanier = (e: React.MouseEvent, produit: Produit) => {
     e.stopPropagation();
@@ -82,7 +93,7 @@ export default function Home() {
       <header className="bg-gray-900 border-b border-red-800 py-6 px-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-red-500">La Petite Maison de Epouvante</h1>
+            <h1 className="text-3xl font-bold text-red-500">La Petite Maison de l'Épouvante</h1>
             <p className="text-gray-400 text-sm mt-1">Fanzine Horreur et Fantastique</p>
           </div>
           <div className="flex items-center gap-3">
@@ -151,19 +162,62 @@ export default function Home() {
       )}
 
       <section className="max-w-6xl mx-auto px-8 py-12">
-        <h2 className="text-2xl font-bold mb-8 text-red-400">Catalogue Produits</h2>
+        <h2 className="text-2xl font-bold mb-6 text-red-400">Catalogue Produits</h2>
 
         {isAuthenticated && (
-          <div className="bg-green-900 border border-green-600 text-green-200 px-6 py-3 rounded mb-6">
-            Bienvenue <strong>{username}</strong> !
+          <div className="flex items-center gap-4 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-xl px-6 py-4 mb-8 shadow-lg">
+            <div className="bg-red-700 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold shadow-md">
+              {username?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-gray-400 text-xs uppercase tracking-widest">Connecté en tant que</p>
+              <p className="text-white font-bold text-lg">{username}</p>
+            </div>
+            <div className="ml-auto bg-red-900 text-red-300 text-xs px-3 py-1 rounded-full border border-red-700">
+              ✓ Membre actif
+            </div>
           </div>
         )}
+
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <input
+            type="text"
+            placeholder="🔍 Rechercher un produit..."
+            value={recherche}
+            onChange={e => setRecherche(e.target.value)}
+            className="flex-1 bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-red-500"
+          />
+          <div className="flex gap-2">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategorieActive(cat)}
+                className={`px-4 py-2 rounded text-sm font-medium transition ${
+                  categorieActive === cat
+                    ? 'bg-red-700 text-white'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                {cat === 'TOUS' ? 'Tous' :
+                 cat === 'VETEMENT' ? '👕 Vêtements' :
+                 cat === 'LIVRE' ? '📚 Livres' : '🎭 Accessoires'}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {produitsLoading && <div className="text-center text-gray-400 py-20">Chargement...</div>}
         {error && <div className="bg-red-900 border border-red-500 text-red-200 px-6 py-4 rounded">{error}</div>}
 
+        {!produitsLoading && produitsFiltres.length === 0 && (
+          <div className="text-center text-gray-500 py-20">
+            <p className="text-5xl mb-4">👻</p>
+            <p>Aucun produit ne correspond à votre recherche.</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {produits.map(produit => (
+          {produitsFiltres.map(produit => (
             <div
               key={produit.id}
               onClick={() => router.push(`/produits/${produit.id}`)}
