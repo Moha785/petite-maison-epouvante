@@ -19,6 +19,12 @@ interface ArticlePanier {
   quantite: number;
 }
 
+interface ProfilData {
+  avatarUrl: string;
+  prenom: string;
+  nom: string;
+}
+
 const getPanierFromStorage = (): ArticlePanier[] => {
   try {
     const saved = localStorage.getItem('panier');
@@ -40,6 +46,7 @@ export default function Home() {
   const [panierOuvert, setPanierOuvert] = useState(false);
   const [recherche, setRecherche] = useState('');
   const [categorieActive, setCategorieActive] = useState('TOUS');
+  const [profil, setProfil] = useState<ProfilData>({ avatarUrl: '', prenom: '', nom: '' });
   const initialise = useRef(false);
 
   useEffect(() => {
@@ -61,6 +68,15 @@ export default function Home() {
       .then(data => { setProduits(data); setProduitsLoading(false); })
       .catch(() => { setError('Erreur de connexion au serveur'); setProduitsLoading(false); });
   }, []);
+
+  useEffect(() => {
+    if (username) {
+      fetch(`http://localhost:8080/api/profil/${username}`)
+        .then(res => res.json())
+        .then(data => setProfil(data))
+        .catch(() => {});
+    }
+  }, [username]);
 
   const produitsFiltres = produits.filter(p => {
     const matchRecherche = p.nom.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -87,13 +103,14 @@ export default function Home() {
 
   const totalPanier = panier.reduce((acc, a) => acc + a.produit.prix * a.quantite, 0);
   const nbArticles = panier.reduce((acc, a) => acc + a.quantite, 0);
+  const initiale = username?.charAt(0).toUpperCase() || '?';
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <header className="bg-gray-900 border-b border-red-800 py-6 px-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-red-500">La Petite Maison de l'Épouvante</h1>
+            <h1 className="text-3xl font-bold text-red-500">La Petite Maison de Epouvante</h1>
             <p className="text-gray-400 text-sm mt-1">Fanzine Horreur et Fantastique</p>
           </div>
           <div className="flex items-center gap-3">
@@ -109,7 +126,16 @@ export default function Home() {
               <span className="text-gray-500 text-sm">Chargement...</span>
             ) : isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <span className="text-gray-300 text-sm">👤 {username}</span>
+                <button onClick={() => router.push('/profil')} className="flex items-center gap-2 hover:opacity-80 transition">
+                  {profil.avatarUrl ? (
+                    <img src={profil.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-red-700" />
+                  ) : (
+                    <div className="bg-red-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                      {initiale}
+                    </div>
+                  )}
+                  <span className="text-gray-300 text-sm">{username}</span>
+                </button>
                 <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm font-medium transition">
                   Déconnexion
                 </button>
@@ -166,12 +192,18 @@ export default function Home() {
 
         {isAuthenticated && (
           <div className="flex items-center gap-4 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-xl px-6 py-4 mb-8 shadow-lg">
-            <div className="bg-red-700 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold shadow-md">
-              {username?.charAt(0).toUpperCase()}
+            <div className="rounded-full w-12 h-12 overflow-hidden flex-shrink-0">
+              {profil.avatarUrl ? (
+                <img src={profil.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="bg-red-700 w-full h-full flex items-center justify-center text-xl font-bold">
+                  {initiale}
+                </div>
+              )}
             </div>
             <div>
               <p className="text-gray-400 text-xs uppercase tracking-widest">Connecté en tant que</p>
-              <p className="text-white font-bold text-lg">{username}</p>
+              <p className="text-white font-bold text-lg">{profil.prenom || profil.nom ? `${profil.prenom} ${profil.nom}` : username}</p>
             </div>
             <div className="ml-auto bg-red-900 text-red-300 text-xs px-3 py-1 rounded-full border border-red-700">
               ✓ Membre actif
