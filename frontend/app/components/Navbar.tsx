@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useKeycloak } from '@/hooks/useKeycloak';
 
@@ -26,14 +26,10 @@ export default function Navbar() {
 
   useEffect(() => {
     chargerPanier();
-
-    const handleStorage = () => chargerPanier();
-    window.addEventListener('storage', handleStorage);
-
+    window.addEventListener('storage', chargerPanier);
     const interval = setInterval(chargerPanier, 500);
-
     return () => {
-      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('storage', chargerPanier);
       clearInterval(interval);
     };
   }, []);
@@ -51,6 +47,25 @@ export default function Navbar() {
     const updated = panier.filter(a => a.produit.id !== produitId);
     setPanier(updated);
     localStorage.setItem('panier', JSON.stringify(updated));
+  };
+
+  const commander = async () => {
+    try {
+      const articles = panier.map(a => ({
+        nom: a.produit.nom,
+        prix: a.produit.prix,
+        quantite: a.quantite,
+      }));
+      const res = await fetch('http://localhost:8080/api/paiement/create-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(articles),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch (e) {
+      console.error('Erreur paiement', e);
+    }
   };
 
   const totalPanier = panier.reduce((acc, a) => acc + a.produit.prix * a.quantite, 0);
@@ -150,8 +165,11 @@ export default function Navbar() {
                   <span>Total</span>
                   <span className="text-red-400">{totalPanier.toFixed(2)} €</span>
                 </div>
-                <button className="w-full bg-red-700 hover:bg-red-600 py-3 rounded font-medium transition">
-                  Commander
+                <button
+                  onClick={commander}
+                  className="w-full bg-red-700 hover:bg-red-600 py-3 rounded font-medium transition"
+                >
+                  💳 Commander avec Stripe
                 </button>
               </div>
             </>

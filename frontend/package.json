@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^5.6.1",
+    "@stripe/stripe-js": "^8.10.0",
     "axios": "^1.13.6",
     "keycloak-js": "^26.2.3",
     "next": "16.1.6",
