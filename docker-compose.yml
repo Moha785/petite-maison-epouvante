@@ -31,7 +31,9 @@ services:
       KC_DB_PASSWORD: pme_password
     ports:
       - "8180:8080"
-    command: start-dev
+    command: start-dev --import-realm
+    volumes:
+      - ./docker/pme-realm.json:/opt/keycloak/data/import/pme-realm.json
     depends_on:
       postgres:
         condition: service_healthy
