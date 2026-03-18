@@ -38,7 +38,7 @@ const getPanierFromStorage = (): ArticlePanier[] => {
 const CATEGORIES = ['TOUS', 'VETEMENT', 'LIVRE', 'ACCESSOIRE'];
 
 export default function Home() {
-  const { isAuthenticated, username, login } = useKeycloak();
+  const { isAuthenticated, username, login, loading } = useKeycloak();
   const router = useRouter();
   const [produits, setProduits] = useState<Produit[]>([]);
   const [produitsLoading, setProduitsLoading] = useState(true);
@@ -186,10 +186,12 @@ export default function Home() {
                 </div>
                 <button
                   onClick={(e) => ajouterAuPanier(e, produit)}
-                  disabled={!produit.disponible}
+                  disabled={!produit.disponible || loading}
                   className="mt-4 w-full bg-red-700 hover:bg-red-600 disabled:bg-gray-700 disabled:text-gray-500 py-2 rounded font-medium transition"
                 >
-                  {!produit.disponible ? 'Indisponible' : isAuthenticated ? 'Ajouter au panier' : 'Connectez-vous pour acheter'}
+                  {!produit.disponible ? 'Indisponible' :
+                   loading ? '...' :
+                   isAuthenticated ? 'Ajouter au panier' : 'Connectez-vous pour acheter'}
                 </button>
               </div>
             </div>

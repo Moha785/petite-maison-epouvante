@@ -15,14 +15,27 @@ export default function Navbar() {
   const [panierOuvert, setPanierOuvert] = useState(false);
   const [panier, setPanier] = useState<ArticlePanier[]>([]);
   const [profil, setProfil] = useState<{ avatarUrl: string; prenom: string; nom: string }>({ avatarUrl: '', prenom: '', nom: '' });
-  const initialise = useRef(false);
 
-  useEffect(() => {
-    if (!initialise.current) {
+  const chargerPanier = () => {
+    try {
       const saved = localStorage.getItem('panier');
       if (saved) setPanier(JSON.parse(saved));
-      initialise.current = true;
-    }
+      else setPanier([]);
+    } catch {}
+  };
+
+  useEffect(() => {
+    chargerPanier();
+
+    const handleStorage = () => chargerPanier();
+    window.addEventListener('storage', handleStorage);
+
+    const interval = setInterval(chargerPanier, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -59,16 +72,10 @@ export default function Navbar() {
               <p className="text-gray-400 text-xs mt-0.5">Fanzine Horreur et Fantastique</p>
             </div>
             <nav className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/')}
-                className="text-gray-400 hover:text-white text-sm transition"
-              >
+              <button onClick={() => router.push('/')} className="text-gray-400 hover:text-white text-sm transition">
                 🏚️ Catalogue
               </button>
-              <button
-                onClick={() => router.push('/troc')}
-                className="text-gray-400 hover:text-red-400 text-sm transition"
-              >
+              <button onClick={() => router.push('/troc')} className="text-gray-400 hover:text-red-400 text-sm transition">
                 🔄 Troc & Échange
               </button>
             </nav>

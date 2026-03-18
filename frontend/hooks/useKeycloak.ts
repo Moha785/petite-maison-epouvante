@@ -15,6 +15,10 @@ interface KeycloakState {
 
 let keycloakInstance: any = null;
 let keycloakInitialized = false;
+let keycloakInitializing = false;
+const listeners: Array<() => void> = [];
+
+const notifyListeners = () => listeners.forEach(l => l());
 
 export function useKeycloak(): KeycloakState {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -23,7 +27,26 @@ export function useKeycloak(): KeycloakState {
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const syncState = () => {
+    if (!keycloakInstance) return;
+    const authenticated = keycloakInstance.authenticated || false;
+    setIsAuthenticated(authenticated);
+    if (authenticated) {
+      setUsername(keycloakInstance.tokenParsed?.preferred_username || null);
+      setToken(keycloakInstance.token || null);
+      setRoles(keycloakInstance.realmAccess?.roles || []);
+    } else {
+      setUsername(null);
+      setToken(null);
+      setRoles([]);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
+    const listener = () => syncState();
+    listeners.push(listener);
+
     const initKeycloak = async () => {
       if (typeof window === 'undefined') return;
 
@@ -38,43 +61,51 @@ export function useKeycloak(): KeycloakState {
       }
 
       if (keycloakInitialized) {
-        setIsAuthenticated(keycloakInstance.authenticated || false);
-        if (keycloakInstance.authenticated) {
-          setUsername(keycloakInstance.tokenParsed?.preferred_username || null);
-          setToken(keycloakInstance.token || null);
-          setRoles(keycloakInstance.realmAccess?.roles || []);
-        }
-        setLoading(false);
+        syncState();
+        return;
+      }
+
+      if (keycloakInitializing) {
+        const wait = setInterval(() => {
+          if (keycloakInitialized) {
+            clearInterval(wait);
+            syncState();
+          }
+        }, 100);
         return;
       }
 
       try {
-        keycloakInitialized = true;
-        const authenticated = await keycloakInstance.init({
+        keycloakInitializing = true;
+        await keycloakInstance.init({
           onLoad: 'check-sso',
           silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
           pkceMethod: 'S256',
         });
-
-        setIsAuthenticated(authenticated);
-        if (authenticated) {
-          setUsername(keycloakInstance.tokenParsed?.preferred_username || null);
-          setToken(keycloakInstance.token || null);
-          setRoles(keycloakInstance.realmAccess?.roles || []);
-        }
+        keycloakInitialized = true;
+        keycloakInitializing = false;
+        notifyListeners();
       } catch (e) {
         console.error('Keycloak init failed', e);
         keycloakInitialized = false;
-      } finally {
+        keycloakInitializing = false;
         setLoading(false);
       }
     };
 
     initKeycloak();
+
+    return () => {
+      const index = listeners.indexOf(listener);
+      if (index > -1) listeners.splice(index, 1);
+    };
   }, []);
 
   const login = () => keycloakInstance?.login();
-  const logout = () => keycloakInstance?.logout({ redirectUri: 'http://localhost:3000' });
+  const logout = () => {
+    keycloakInitialized = false;
+    keycloakInstance?.logout({ redirectUri: 'http://localhost:3000' });
+  };
   const register = () => keycloakInstance?.register({ redirectUri: 'http://localhost:3000' });
 
   return { isAuthenticated, username, token, roles, login, logout, register, loading };
