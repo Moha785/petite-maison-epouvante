@@ -35,8 +35,11 @@ public class ProduitService {
     }
 
     public List<ProduitDTO> rechercher(String nom, String categorie, Boolean disponible) {
-        return produitRepository.rechercher(nom, categorie, disponible)
+        return produitRepository.findAll()
                 .stream()
+                .filter(p -> nom == null || p.getNom().toLowerCase().contains(nom.toLowerCase()))
+                .filter(p -> categorie == null || p.getCategorie().equals(categorie))
+                .filter(p -> disponible == null || p.getDisponible().equals(disponible))
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }

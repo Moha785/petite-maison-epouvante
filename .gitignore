@@ -20,3 +20,4 @@ frontend/.next/
 # Docker
 docker/volumes/
 EOFbackend/src/main/resources/application.properties
+backend/src/main/resources/application.properties

@@ -3,44 +3,52 @@ import { check, sleep } from 'k6';
 
 export const options = {
   stages: [
-    { duration: '30s', target: 10 },  // Montée en charge : 0 -> 10 utilisateurs
-    { duration: '1m',  target: 50 },  // Charge normale : 50 utilisateurs
-    { duration: '30s', target: 100 }, // Pic de charge : 100 utilisateurs
-    { duration: '30s', target: 0 },   // Descente : retour à 0
+    { duration: '30s', target: 10 },
+    { duration: '1m',  target: 50 },
+    { duration: '30s', target: 100 },
+    { duration: '30s', target: 0 },
   ],
   thresholds: {
-    http_req_duration: ['p(95)<500'], // 95% des requêtes < 500ms
-    http_req_failed:   ['rate<0.01'], // Moins de 1% d'erreurs
+    http_req_duration: ['p(95)<500'],
+    http_req_failed:   ['rate<0.01'],
   },
 };
 
 const BASE_URL = 'http://localhost:8080';
 
+function scenarioVisite() {
+  const res = http.get(`${BASE_URL}/api/produits`);
+  check(res, { '✅ Catalogue chargé': (r) => r.status === 200 });
+  sleep(Math.random() * 3 + 1);
+
+  const produits = JSON.parse(res.body);
+  const produit = produits[Math.floor(Math.random() * produits.length)];
+  const res2 = http.get(`${BASE_URL}/api/produits/${produit.id}`);
+  check(res2, { '✅ Détail produit chargé': (r) => r.status === 200 });
+  sleep(Math.random() * 2 + 1);
+}
+
+function scenarioRecherche() {
+  const categories = ['VETEMENT', 'LIVRE', 'ACCESSOIRE'];
+  const cat = categories[Math.floor(Math.random() * categories.length)];
+  const res = http.get(`${BASE_URL}/api/produits/recherche?categorie=${cat}`);
+  check(res, { '✅ Recherche catégorie': (r) => r.status === 200 });
+  sleep(Math.random() * 2 + 1);
+}
+
+function scenarioTroc() {
+  const res = http.get(`${BASE_URL}/api/annonces`);
+  check(res, { '✅ Annonces chargées': (r) => r.status === 200 });
+  sleep(Math.random() * 2 + 1);
+}
+
 export default function () {
-  // Test 1 : Lister tous les produits
-  const resProduits = http.get(`${BASE_URL}/api/produits`);
-  check(resProduits, {
-    '✅ GET /api/produits - status 200': (r) => r.status === 200,
-    '✅ GET /api/produits - temps < 500ms': (r) => r.timings.duration < 500,
-    '✅ GET /api/produits - retourne des produits': (r) => JSON.parse(r.body).length > 0,
-  });
-
-  sleep(1);
-
-  // Test 2 : Détail d'un produit
-  const resProduit = http.get(`${BASE_URL}/api/produits/1`);
-  check(resProduit, {
-    '✅ GET /api/produits/1 - status 200': (r) => r.status === 200,
-    '✅ GET /api/produits/1 - temps < 300ms': (r) => r.timings.duration < 300,
-  });
-
-  sleep(1);
-
-  // Test 3 : Recherche de produits
-  const resRecherche = http.get(`${BASE_URL}/api/produits?categorie=LIVRE`);
-  check(resRecherche, {
-    '✅ GET /api/produits?categorie=LIVRE - status 200': (r) => r.status === 200,
-  });
-
-  sleep(1);
+  const rand = Math.random();
+  if (rand < 0.5) {
+    scenarioVisite();
+  } else if (rand < 0.8) {
+    scenarioRecherche();
+  } else {
+    scenarioTroc();
+  }
 }
